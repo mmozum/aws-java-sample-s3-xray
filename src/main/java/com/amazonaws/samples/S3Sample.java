@@ -14,6 +14,10 @@
  */
 package com.amazonaws.samples;
 
+import com.amazonaws.xray.AWSXRay;
+import com.amazonaws.xray.handlers.TracingHandler;
+
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,6 +34,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -62,17 +67,27 @@ public class S3Sample {
          * aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
          */
 
-        AmazonS3 s3 = new AmazonS3Client();
+        Region usWest2 = Region.getRegion(Regions.US_WEST_2);
+
+        AmazonS3 s3 = AmazonS3ClientBuilder.standard()
+          .withRegion(Regions.US_WEST_2)
+          .withRequestHandlers(new TracingHandler(AWSXRay.getGlobalRecorder()))
+          .build();
+
+        /*AmazonS3 s3 = new AmazonS3Client();
         Region usWest2 = Region.getRegion(Regions.US_WEST_2);
         s3.setRegion(usWest2);
+        s3.setRequestHandlers(new TracingHandler(AWSXRay.getGlobalRecorder()));*/
 
-        String bucketName = "my-first-s3-bucket-" + UUID.randomUUID();
-        String key = "MyObjectKey";
+        String bucketName = "wavefront-s3-sample"; // + UUID.randomUUID();
+        String key = "WF-ObjectKey";
 
         System.out.println("===========================================");
         System.out.println("Getting Started with Amazon S3");
         System.out.println("===========================================\n");
 
+        // ;; begin the trace segment, all the remaining calls will generate sub segments
+        AWSXRay.beginSegment("Amazon S3-2");
         try {
             /*
              * Create a new S3 bucket - Amazon S3 bucket names are globally unique,
@@ -168,6 +183,7 @@ public class S3Sample {
                     + "such as not being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
         }
+        AWSXRay.endSegment();
     }
 
     /**
